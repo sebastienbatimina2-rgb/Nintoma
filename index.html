@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application de Suivi Statistique</title>
+    <style>
+        :root {
+            --color-5: #2ecc71; /* Vert */
+            --color-4: #3498db; /* Bleu */
+            --color-3: #e67e22; /* Orange */
+            --color-2: #9b59b6; /* Violet */
+            --color-1: #e91e63; /* Rose */
+            --color-0: #2c3e50; /* Fond vide */
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f6fa;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        h1, h2 { text-align: center; color: #2c3e50; margin-top: 5px; }
+        .container { max-width: 100%; margin: 0 auto; }
+        
+        /* Barre supérieure de contrôle */
+        .top-bar {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        /* Menu de Navigation */
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        select, input, button, textarea {
+            padding: 12px 18px;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        button {
+            background-color: #2c3e50;
+            color: white;
+            cursor: pointer;
+            border: none;
+            transition: background 0.2s, transform 0.1s;
+        }
+        button:hover { background-color: #34495e; }
+        button:active { transform: scale(0.98); }
+        button.btn-nav { background-color: #7f8c8d; }
+        button.btn-nav.active { background-color: #2980b9; }
+        button.btn-danger { background-color: #e74c3c; }
+        button.btn-danger:hover { background-color: #c0392b; }
+        button.btn-check { background-color: #27ae60; }
+        button.btn-check:hover { background-color: #219653; }
+        button.btn-secondary { background-color: #16a085; }
+        button.btn-secondary:hover { background-color: #117a65; }
+
+        /* Zones d'Écrans */
+        .screen {
+            display: none;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            animation: fadeIn 0.3s ease;
+        }
+        .screen.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; } to { opacity: 1; }
+        }
+        
+        /* Zones de Saisie */
+        .input-inline-zone {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            background: #ecf0f1;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+        .input-inline-zone input { flex-grow: 1; font-size: 16px; }
+
+        .whatsapp-zone {
+            background: #e8f8f5;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 5px solid #16a085;
+        }
+        .whatsapp-zone textarea {
+            width: 100%;
+            height: 100px;
+            box-sizing: border-box;
+            font-family: monospace;
+            margin-top: 10px;
+            margin-bottom: 10px;
+            resize: vertical;
+        }
+
+        /* Panneaux de résultats P3 / Rencontres */
+        .panel-result {
+            background-color: #f1c40f;
+            color: #2c3e50;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-weight: bold;
+            border-left: 5px solid #d35400;
+        }
+        .info-box {
+            background-color: #eaedf1;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        /* Tableaux */
+        .table-wrapper {
+            max-height: 75vh;
+            overflow: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            text-align: center;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            font-weight: bold;
+        }
+        th { background-color: #f2f2f2; position: sticky; top: 0; z-index: 10; }
+        
+        /* Couleurs des lignes du tableau principal */
+        .row-5 { background-color: var(--color-5); color: white; }
+        .row-4 { background-color: var(--color-4); color: white; }
+        .row-3 { background-color: var(--color-3); color: white; }
+        .row-2 { background-color: var(--color-2); color: white; }
+        .row-1 { background-color: var(--color-1); color: white; }
+        .row-0 { background-color: var(--color-0); color: #7f8c8d; }
+
+        .tab-ecarts td { font-size: 12px; background-color: #fff; color: #333; min-width: 50px;}
+        .tab-ecarts tr:hover td { background-color: #f1f2f6; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    
+    <!-- BARRE DE CONTRÔLE SUPÉRIEURE -->
+    <div class="top-bar">
+        <div>
+            <label for="projectSelect"><strong>Projet :</strong></label>
+            <select id="projectSelect" onchange="switchProject()"></select>
+        </div>
+
+        <!-- MENUS NAVIGATION -->
+        <div class="nav-buttons">
+            <button class="btn-nav active" id="btn-screen1" onclick="showScreen('screen1')">Tableau Principal</button>
+            <button class="btn-nav" id="btn-screen2" onclick="showScreen('screen2')">Tableau des Écarts</button>
+            <button class="btn-nav" id="btn-screen3" onclick="showScreen('screen3')">Passage P3</button>
+            <button class="btn-nav" id="btn-screen4" onclick="showScreen('screen4')">Rencontres d'Écarts</button>
+        </div>
+
+        <button class="btn-danger" onclick="resetCurrentProject()">Réinitialiser le Projet</button>
+    </div>
+
+    <!-- ÉCRAN 1 : SAISIE + TABLEAU PRINCIPAL -->
+    <div id="screen1" class="screen active">
+        <h2>Saisie & Tableau Principal</h2>
+        
+        <!-- MODE 1 : SAISIE MANUELLE CLASSIQUE -->
+        <div class="input-inline-zone">
+            <label for="numbersInput"><strong>Mode 1 - Saisie classique (séparés par des espaces) :</strong></label>
+            <input type="text" id="numbersInput" placeholder="Ex: 23 49 71 33 77" autocomplete="off">
+            <button onclick="processSingleInput()">Valider</button>
+        </div>
+
+        <!-- MODE 2 : MULTI-SAISIE WHATSAPP -->
+        <div class="whatsapp-zone">
+            <strong>Mode 2 - Coller un bloc de texte WhatsApp (lignes avec tirets "-") :</strong>
+            <textarea id="whatsappInput" placeholder="Collez votre texte ici. Exemple :&#10;23-49-71-33-77&#10;08-51-38-21-55&#10;57-67-90-41-01"></textarea>
+            <button class="btn-secondary" onclick="processWhatsAppInput()">Injecter le bloc WhatsApp</button>
+        </div>
+        
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 15%">Ligne</th>
+                        <th>Numéro 1</th><th>Numéro 2</th><th>Numéro 3</th><th>Numéro 4</th><th>Numéro 5</th>
+                    </tr>
+                </thead>
+                <tbody id="mainTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ÉCRAN 2 : TABLEAU DES ÉCARTS -->
+    <div id="screen2" class="screen">
+        <h2>Tableau Récapitulatif des Écarts</h2>
+        <p style="text-align: center; color: #666;">Les colonnes se créent de gauche à droite à chaque nouvelle entrée.</p>
+        <div class="table-wrapper">
+            <table class="tab-ecarts">
+                <thead>
+                    <tr id="ecartsHeader">
+                        <th>Écart</th>
+                    </tr>
+                </thead>
+                <tbody id="ecartsTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ÉCRAN 3 : PASSAGE P3 -->
+    <div id="screen3" class="screen">
+        <h2>Vérification du Passage P3</h2>
+        <div class="info-box">
+            <strong>Rappel de la règle :</strong> S'il n'y a aucun numéro apparu 3 fois au bout de 9 lignes d'entrées consécutives, l'outil affiche la liste de tous les numéros présents exactement 2 fois. Le suivi continue jusqu'à ce qu'un numéro sorte une 3ème fois pour réinitialiser le cycle.
+        </div>
+        <button class="btn-check" onclick="triggerP3Check()">Lancer la vérification manuelle du P3</button>
+        <div id="p3ManualResult" class="panel-result" style="display:none; background-color: #27ae60; color: white; border: none;"></div>
+    </div>
+
+    <!-- ÉCRAN 4 : RENCONTRES D'ÉCARTS -->
+    <div id="screen4" class="screen">
+        <h2>Analyse des Rencontres d'Écarts</h2>
+        <div class="info-box">
+            Ce panneau analyse l'historique de votre <strong>Tableau des Écarts</strong> et extrait les groupes de numéros qui se sont retrouvés positionnés ensemble sur la même ligne d'écart lors d'une même session d'entrée.
+        </div>
+        <button class="btn-check" onclick="analyzeEncounters()">Analyser les rencontres</button>
+        
+        <div id="encountersResult" style="margin-top: 20px;"></div>
+    </div>
+
+</div>
+
+<script>
+    const MAX_PROJECTS = 10;
+    const MAIN_ROWS = 1000;
+    const ECARTS_ROWS = 500;
+    
+    let currentProjectIdx = 0;
+    let projects = [];
+
+    window.onload = function() {
+        initSelect();
+        loadData();
+        renderAll();
+        
+        document.getElementById('numbersInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') processSingleInput();
+        });
+    };
+
+    function initSelect() {
+        const select = document.getElementById('projectSelect');
+        select.innerHTML = '';
+        for(let i=1; i<=MAX_PROJECTS; i++) {
+            let opt = document.createElement('option');
+            opt.value = i - 1;
+            opt.innerText = `Projet ${i}`;
+            select.appendChild(opt);
+        }
+    }
+
+    function loadData() {
+        let saved = localStorage.getItem('app_data_projects_v3');
+        if(saved) {
+            projects = JSON.parse(saved);
+        } else {
+            projects = [];
+            for(let i=0; i<MAX_PROJECTS; i++) {
+                projects.push({ mainData: [], p3History: [], ecartsData: [] });
+            }
+        }
+    }
+
+    function saveData() {
+        localStorage.setItem('app_data_projects_v3', JSON.stringify(projects));
+    }
+
+    function switchProject() {
+        currentProjectIdx = parseInt(document.getElementById('projectSelect').value);
+        document.getElementById('p3ManualResult').style.display = 'none';
+        document.getElementById('encountersResult').innerHTML = '';
+        renderAll();
+    }
+
+    function resetCurrentProject() {
+        if(confirm("Voulez-vous réinitialiser toutes les données de ce projet ?")) {
+            projects[currentProjectIdx] = { mainData: [], p3History: [], ecartsData: [] };
+            saveData();
+            document.getElementById('p3ManualResult').style.display = 'none';
+            document.getElementById('encountersResult').innerHTML = '';
+            renderAll();
+        }
+    }
+
+    function showScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.btn-nav').forEach(b => b.classList.remove('active'));
+        
+        document.getElementById(screenId).classList.add('active');
+        document.getElementById('btn-' + screenId).classList.add('active');
+    }
+
+    // Exécution pour la saisie unitaire classique (Mode 1)
+    function processSingleInput() {
+        const inputField = document.getElementById('numbersInput');
+        const value = inputField.value.trim();
+        if(!value) return;
+
+        let newNums = value.split(/\s+/).map(Number).filter(n => !isNaN(n) && n !== 0);
+        if(newNums.length === 0 || newNums.length > 5) {
+            alert("Veuillez entrer entre 1 et 5 numéros.");
+            return;
+        }
+
+        executeCoreLogic(newNums);
+        
+        saveData();
+        renderAll();
+        inputField.value = '';
+        inputField.focus();
+    }
+
+    // Exécution pour le bloc WhatsApp (Mode 2)
+    function processWhatsAppInput() {
+        const textarea = document.getElementById('whatsappInput');
+        const content = textarea.value.trim();
+        if(!content) return;
+
+        // Découper le texte par ligne
+        let lines = content.split(/\r?\n/);
+        let entriesCount = 0;
+
+        lines.forEach(line => {
+            let cleanLine = line.trim();
+            if(!cleanLine) return; // Ignore les lignes vides
+
+            // Extraire les numéros séparés par des tirets (ou des espaces si l'utilisateur fait une erreur)
+            let rowNums = cleanLine.split(/[- ]+/).map(Number).filter(n => !isNaN(n) && n !== 0);
+            
+            if(rowNums.length > 0 && rowNums.length <= 5) {
+                executeCoreLogic(rowNums);
+                entriesCount++;
+            }
+        });
+
+        if(entriesCount > 0) {
+            saveData();
+            renderAll();
+            textarea.value = '';
+            alert(`${entriesCount} ligne(s) WhatsApp ont été injectée(s) avec succès !`);
+        } else {
+            alert("Aucune ligne valide trouvée. Vérifiez le format (Ex: 23-49-71-33-77).");
+        }
+    }
+
+    // Cœur de l'algorithme (partagé par les deux modes de saisie)
+    function executeCoreLogic(newNums) {
+        let proj = projects[currentProjectIdx];
+        if(!proj.ecartsData) proj.ecartsData = [];
+
+        // 1. Détection des écarts précédents
+        let positionsEcarts = [];
+        newNums.forEach(num => {
+            let foundEcart = -1;
+            for(let i=0; i<proj.mainData.length; i++) {
+                if(proj.mainData[i].includes(num)) {
+                    foundEcart = i;
+                    break;
+                }
+            }
+            if(foundEcart !== -1) {
+                positionsEcarts.push({num: num, ecart: foundEcart});
+            }
+        });
+
+        // 2. Nettoyage des anciennes occurrences
+        proj.mainData = proj.mainData.map(row => row.filter(n => !newNums.includes(n)));
+
+        // 3. Insertion en Ec0
+        proj.mainData.unshift(newNums);
+        if(proj.mainData.length > MAIN_ROWS) proj.mainData.pop();
+
+        // 4. Archivage dans le Tableau des Écarts
+        let columnData = {};
+        positionsEcarts.forEach(item => {
+            if(item.ecart >= 1 && item.ecart <= ECARTS_ROWS) {
+                if(!columnData[item.ecart]) columnData[item.ecart] = [];
+                columnData[item.ecart].push(item.num);
+            }
+        });
+        proj.ecartsData.push(columnData);
+
+        // 5. Mise à jour de l'historique P3
+        proj.p3History.push(newNums);
+        silentP3Check(proj);
+    }
+
+    function silentP3Check(proj) {
+        if (proj.p3History.length === 0) return;
+        let counts = {};
+        proj.p3History.forEach(row => {
+            row.forEach(num => { counts[num] = (counts[num] || 0) + 1; });
+        });
+        if (Object.values(counts).some(c => c >= 3)) {
+            proj.p3History = [];
+        }
+    }
+
+    function triggerP3Check() {
+        let proj = projects[currentProjectIdx];
+        const resZone = document.getElementById('p3ManualResult');
+        resZone.style.display = "block";
+
+        if(!proj.p3History || proj.p3History.length < 9) {
+            resZone.style.backgroundColor = "#e67e22";
+            resZone.innerHTML = `L'historique actuel ne contient que ${proj.p3History ? proj.p3History.length : 0} ligne(s). Le Passage P3 s'active à partir de 9 lignes sans triplet.`;
+            return;
+        }
+
+        let counts = {};
+        proj.p3History.forEach(row => {
+            row.forEach(num => { counts[num] = (counts[num] || 0) + 1; });
+        });
+
+        let doubles = [];
+        for(let num in counts) {
+            if(counts[num] === 2) doubles.push(num);
+        }
+
+        resZone.style.backgroundColor = "#27ae60";
+        if(doubles.length > 0) {
+            resZone.innerHTML = `Analyse active (Lignes accumulées : ${proj.p3History.length})<br>Numéros apparus exactement 2 fois : ${doubles.sort((a,b)=>a-b).join(', ')}`;
+        } else {
+            resZone.innerHTML = `Analyse active (Lignes accumulées : ${proj.p3History.length})<br>Aucun numéro n'est encore apparu exactement 2 fois.`;
+        }
+    }
+
+    function analyzeEncounters() {
+        let proj = projects[currentProjectIdx];
+        const container = document.getElementById('encountersResult');
+        container.innerHTML = '';
+
+        if(!proj.ecartsData || proj.ecartsData.length === 0) {
+            container.innerHTML = "<p style='color:red; font-weight:bold;'>Aucune donnée d'écart disponible à analyser.</p>";
+            return;
+        }
+
+        let matches = {};
+        proj.ecartsData.forEach((col, colIdx) => {
+            for(let ecartKey in col) {
+                let list = col[ecartKey];
+                if(list && list.length > 1) {
+                    let sortedGroup = [...list].sort((a,b) => a-b).join(', ');
+                    if(!matches[sortedGroup]) matches[sortedGroup] = [];
+                    matches[sortedGroup].push(`Col #${colIdx+1} (à Ec${ecartKey})`);
+                }
+            }
+        });
+
+        let html = "<h3>Groupes de numéros s'étant rencontrés :</h3>";
+        let hasMatches = false;
+
+        for(let group in matches) {
+            hasMatches = true;
+            html += `<div style="background:#fff; border:1px solid #ddd; padding:10px; margin-bottom:8px; border-radius:4px;">
+                        <span style="font-size:16px; color:#2980b9;"><strong>[${group}]</strong></span> 
+                        <br><small style="color:#555;">Trouvé ${matches[group].length} fois : ${matches[group].join(' | ')}</small>
+                     </div>`;
+        }
+
+        if(!hasMatches) {
+            html += "<p>Aucun croisement de plusieurs numéros sur une même ligne d'écart n'a été enregistré pour le moment.</p>";
+        }
+
+        container.innerHTML = html;
+    }
+
+    function renderAll() {
+        let proj = projects[currentProjectIdx];
+        renderMainTable(proj);
+        renderEcartsTable(proj);
+    }
+
+    function renderMainTable(proj) {
+        const tbody = document.getElementById('mainTableBody');
+        tbody.innerHTML = '';
+
+        for(let i = 0; i < MAIN_ROWS; i++) {
+            let tr = document.createElement('tr');
+            let rowData = proj.mainData[i] || [];
+            let len = rowData.length;
+
+            tr.className = `row-${len}`;
+
+            let tdName = document.createElement('td');
+            tdName.innerText = `Ec${i}`;
+            tr.appendChild(tdName);
+
+            for(let c = 0; c < 5; c++) {
+                let td = document.createElement('td');
+                td.innerText = rowData[c] !== undefined ? rowData[c] : '';
+                tr.appendChild(td);
+            }
+            tbody.appendChild(tr);
+        }
+    }
+
+    function renderEcartsTable(proj) {
+        const theadRow = document.getElementById('ecartsHeader');
+        const tbody = document.getElementById('ecartsTableBody');
+        tbody.innerHTML = '';
+        
+        theadRow.innerHTML = '<th>Écart</th>';
+        let totalCols = Math.min(proj.ecartsData.length, 1000);
+        
+        for(let c = 1; c <= totalCols; c++) {
+            let th = document.createElement('th');
+            th.innerText = `#${c}`;
+            theadRow.appendChild(th);
+        }
+
+        for(let e = 1; e <= ECARTS_ROWS; e++) {
+            let tr = document.createElement('tr');
+            
+       
